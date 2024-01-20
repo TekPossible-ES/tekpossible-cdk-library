@@ -1,0 +1,6 @@
+{
+    "deploymentType": "canary",
+    "initialSetup": true,
+    "EnvironmentSize":"small",
+    "MachineAMI": ""
+}
