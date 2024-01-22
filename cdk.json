@@ -1,5 +1,5 @@
 {
-  "app": "npx ts-node --prefer-ts-exts bin/resume_aws_dev_ops.ts",
+  "app": "npx ts-node --prefer-ts-exts bin/tekpossible-app.ts",
   "watch": {
     "include": [
       "**"
