@@ -1,12 +1,33 @@
 ---
 
+# PLAYBOOK README AND DESCRIPTION
+# The goal of this program is to be able to determine what deployed stacks are BLUE stacks, 
+# and which ones are green stacks for my canary deployments. In order to do so, I came up 
+# with the following naming scheme:
+# COMPANY-TwO-LETTER-ORG-CODE-TIMESTAMP-IN-SECONDS
+# Example: TekPossible-ES-1706158314715
+# Why the timestamp?
+# The timestamp is for determining the order of stacks, and therefore determining the BLUE/GREEN stack
+# Let's say I have two stacks STACK-A-2 and STACK-A-1
+# The logic below will look for the stack with the lowest ASCII value name. The stack with the lowest
+# value name is the BLUE (prod) stack since it was created before other (GREEN/canary) stack. 
+# When I deploy stacks, I want to ensure that I delete the GREEN stack, 
+# and not the blue one when I am deploying a new GREEN stack.
+# However, when I promote a GREEN stack to BLUE, I want to switch the records.
+# The logic for both cases will be completed here, and in the CDK itself.
+
 - name: Deploy CDK Stacks
   hosts: localhost
   become: False
-  vars:
-    - cdk_config: "{{ lookup('file','{{ playbook_dir }}/../config/config.json') | from_json }}"
   tasks:
-    - name: DEBUG
-      debug: 
-        msg: "{{ cdk_config }}"
-       
+    # TODO: 
+    # 1. List stacks with current config in inventory
+    # 2. Determine which stack is the BLUE and which is GREEN
+    # 3. Depending on the scenario (action variable), either promote a stack to BLUE or create a GREEN test stack
+    # 4. Based on the action variable, generate a config.json file for input for the CDK.
+    # CDK TODO:
+    # 1. Read in the config.json file and determine how many stacks to make
+    # 2. Based on the config, determine the size of the environment, and how many servers to deploy/type/size based on that
+    # 3. Maybe deploy different security baselines depending on the input provided from the config.json file
+# NOTE: an example config.json file has been provided!
+

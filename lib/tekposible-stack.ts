@@ -8,6 +8,6 @@ import { SamlConsolePrincipal } from 'aws-cdk-lib/aws-iam';
 export class TekPossibleEnterpriseStack extends cdk.Stack {
   constructor(scope: Construct, id: string, stack_config: any , props?: cdk.StackProps) {
     super(scope, id, props);
-    
+
   }
 }
