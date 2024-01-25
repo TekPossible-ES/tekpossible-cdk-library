@@ -1,0 +1,12 @@
+---
+
+- name: Deploy CDK Stacks
+  hosts: localhost
+  become: False
+  vars:
+    - cdk_config: "{{ lookup('file','{{ playbook_dir }}/../config/config.json') | from_json }}"
+  tasks:
+    - name: DEBUG
+      debug: 
+        msg: "{{ cdk_config }}"
+       
