@@ -20,6 +20,11 @@
   hosts: localhost
   become: False
   tasks:
+    - name: TEST
+      debug:
+       var: item.name
+      when: "item.canary is true"
+      loop: "{{ cdk_stacks }}" 
     # TODO: 
     # 1. List stacks with current config in inventory
     # 2. Determine which stack is the BLUE and which is GREEN

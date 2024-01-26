@@ -1,0 +1,10 @@
+---
+
+organization_code: TekPossible
+cdk_stacks:
+  - name: ES
+    description: Enterprise Services
+    canary: true
+    environmentSize: "large"
+    envirornmentType: "enterprise"
+    domain: "eit.tekpossible.aws"
