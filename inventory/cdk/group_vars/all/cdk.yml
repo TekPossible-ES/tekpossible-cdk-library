@@ -1,9 +1,8 @@
 ---
 
-organization_code: TekPossible
 cdk_stacks:
-  - name: ES
-    description: Enterprise Services
+  - name: TekPossible-DevOps
+    description: Enterprise Services DevOps
     canary: true
     environmentSize: "large"
     envirornmentType: "enterprise"

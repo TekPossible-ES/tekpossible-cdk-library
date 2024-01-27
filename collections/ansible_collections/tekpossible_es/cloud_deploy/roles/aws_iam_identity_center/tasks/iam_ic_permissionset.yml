@@ -1,0 +1,28 @@
+
+- name: "AWS IAM-IC PermissionSet Creation via AWS CLI - {{ item.name }}"
+  shell:
+    cmd: |
+      aws sso-admin create-permission-set --name="{{ item.name }}" --description="{{ item.description }}" --instance-arn="{{ aws_iam_ic_arn.stdout }}" --session-duration="{{ item.sessiontime }}"
+  register: results_permissionset_created
+  failed_when: "('already exists' not in results_permissionset_created.stderr) and (results_permissionset_created.rc != 0)"
+  changed_when: "'already exists' not in results_permissionset_created.stderr"
+# aws sso-admin attach-managed-policy-to-permission-set help
+
+- name: Execute ARN Finder Script
+  shell:
+    cmd: |
+      bash ~/iam_ic_permissionset.sh | grep {{ item.name }} | cut -d ',' -f2 | cut -d ' ' -f 11 | sed -r "s/\"//g" | sed -r "s/,//g"
+  register: results_permissionset_arn
+  changed_when: false
+
+- name: "Assign Managed Policy {{ item.role_arn }} to Permission Set  {{ item.name }}"
+  shell:
+    cmd: |
+      aws sso-admin attach-managed-policy-to-permission-set --instance-arn="{{ aws_iam_ic_arn.stdout }}" --permission-set-arn="{{ results_permissionset_arn.stdout }}" --managed-policy-arn="{{ role_arn }}"
+  register: results_permissionset_mapped
+  failed_when: "('already' not in results_permissionset_mapped.stderr) and (results_permissionset_mapped.rc != 0)"
+  changed_when: "'already' not in results_permissionset_mapped.stderr"
+  loop: "{{ item.role_arn }}"
+  loop_control:
+    loop_var: "role_arn"
+    index_var: 'idx'

@@ -1,0 +1,57 @@
+---
+
+- name: Create Stack Selector
+  ansible.builtin.set_fact:
+    stack_selected: []
+
+- name: Populate Selected Stack List
+  ansible.builtin.set_fact: 
+    stack_selected: "{{ stack_selected  + [item] }}"
+  when: 
+    - "stack.name in item"
+  loop: "{{ aws_deployed_stacks.cloudformation | list }}"
+
+- name: Determine how many stacks match our pattern
+  ansible.builtin.set_fact:
+    stack_selected_count: "{{ stack_selected | length }}"
+
+- name: If the number of stacks is zero set the deploy variable
+  set_fact:
+    cdk_stack_deploy: "{{ stack.name }}-<<TIME>>"
+  when: "stack_selected_count == '0'"
+
+- name: If the number of stacks is zero deploy a stack
+  include_tasks: "cdk_deploy.yml"
+  when: "stack_selected_count == '0'"
+
+- name: set the the deploy if the number of stacks is one
+  set_fact: 
+    cdk_stack_deploy: "{{ stack.name }}-<<TIME>>"
+  when: "(stack_selected_count == '1')"
+
+- name: If there is one stack deploy to GRN for canary and update if not canary
+  include_tasks: "cdk_deploy.yml"
+  when: "(stack_selected_count == '1')"
+
+- name: If there are 2 stacks we need to determine which one is the primary and secondary stack - green stack
+  set_fact:
+    green_stack: "{{ stack_selected[0] }}"
+  when: "(stack_selected_count == '2') and (stack_selected[0] > stack_selected[1]) "
+
+- name: If there are 2 stacks we need to determine which one is the primary and secondary stack - green stack
+  set_fact:
+    blue_stack: "{{ stack_selected[1] }}"
+  when: "(stack_selected_count == '2') and (stack_selected[0] > stack_selected[1])"
+
+- name: If there are 2 stacks we need to determine which one is the primary and secondary stack
+  set_fact:
+    green_stack: "{{ stack_selected[1] }}"
+  when: "(stack_selected_count == '2') and (stack_selected[1] > stack_selected[0])"
+
+- name: If there are 2 stacks we need to determine which one is the primary and secondary stack - green stack
+  set_fact:
+    blue_stack: "{{ stack_selected[0] }}"
+  when: "(stack_selected_count == '2') and (stack_selected[1] > stack_selected[0])"
+
+# TODO: Delete old GRN stack, and deploy new GRN stack if action = create
+# If action = update then figure out how to migrate traffic from blue to green and delete blue

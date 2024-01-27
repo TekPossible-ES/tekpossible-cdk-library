@@ -1,0 +1,56 @@
+---
+
+- name: Ensure AWS CLI is authenticated
+  copy:
+    dest: ~/.aws/credentials
+    content: |
+      [default]
+      aws_access_key_id = {{ aws_access_key }}
+      aws_secret_access_key = {{ aws_secret_access_key }}
+
+- name: Get instance ARN
+  shell:
+    cmd: |
+      aws sso-admin list-instances | grep InstanceArn | cut -d  ' ' -f 14 | sed -r "s/\"//g"
+  register: aws_iam_ic_arn
+  changed_when: false
+
+- name: Get identity store id
+  shell:
+    cmd: |
+      aws sso-admin list-instances | grep IdentityStoreId | cut -d  ' ' -f 14 | sed -r "s/\"//g" | sed -r "s/,//g"
+  register: aws_iam_ic_idstore_id
+  changed_when: false
+
+- name: AWS IAM-IC Group Creation via AWS CLI - Include Statement
+  include_tasks: iam_ic_groups.yml
+  loop: "{{ aws_iam_ic_groups }}"
+  register: results_group_created
+
+- name: Create ARN Script
+  copy:
+    content: |
+      #!/bin/bash
+
+      for arn in $(aws sso-admin list-permission-sets --instance-arn {{ aws_iam_ic_arn.stdout }} | grep arn);
+      do
+        arn=$(echo $arn | sed -r "s/\"//g" | sed -r "s/,//g")
+        aws sso-admin describe-permission-set --instance-arn {{ aws_iam_ic_arn.stdout }} --permission-set-arn $arn | grep -E 'Name|PermissionSetArn' | awk 'NR%2{printf "%s ",$0;next;}1'
+      done
+
+    dest: ~/iam_ic_permissionset.sh
+    mode: '0700'
+
+- name: AWS IAM-IC PertmissionSet Creation via AWS CLI - Include Statement
+  include_tasks: iam_ic_permissionset.yml
+  loop: "{{ aws_iam_ic_permission_sets }}"
+  register: results_group_created
+
+- name: AWS IAM-IC Group to Account Binding - Include Statement
+  include_tasks: iam_ic_group_binding.yml
+  loop: "{{ aws_iam_ic_groups }}"
+  register: results_group_created
+
+- name: Create Users in IAM-IC
+  include_tasks: iam_ic_users.yml
+  loop: "{{ aws_iam_ic_users }}"
