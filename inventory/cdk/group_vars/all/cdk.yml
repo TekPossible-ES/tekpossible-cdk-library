@@ -5,7 +5,7 @@ cdk_stacks:
     description: DevOps Stack for my Resume
     canary: false
     envirornmentType: "devops-node"
-    reponame: "tekpossible-resume-node"
+    repo_name: "tekpossible-resume-node"
     region: "us-east-2"
     account: "" # need to get this information
     sns_email: "resume-notifications@tekpossible.com"

@@ -30,5 +30,6 @@ new TekPossibleEnterpriseStack(app, 'TEST', {
   environmentType: "devops-node",
   name: "TEST",
   canary: false,
-  sns_email: "test-notifications@tekpossible.com"
+  sns_email: "test-notifications@tekpossible.com",
+  repo_name: "tekpossible-test-repo"
 });

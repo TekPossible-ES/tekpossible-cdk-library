@@ -2,8 +2,10 @@ import * as cdk from 'aws-cdk-lib';
 import { Visibility } from 'aws-cdk-lib/aws-appsync';
 import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
-import * as iam from 'aws-cdk-lib/aws-iam'
-import * as s3 from 'aws-cdk-lib/aws-s3'
+import * as iam from 'aws-cdk-lib/aws-iam';
+import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as sns from 'aws-cdk-lib/aws-sns';
+import * as codecommit from 'aws-cdk-lib/aws-codecommit';
 import { SamlConsolePrincipal } from 'aws-cdk-lib/aws-iam';
 
 // There are four types of stacks we will create, all of which are determined via the environmentType parameter in config.json
@@ -34,12 +36,32 @@ function devopsNode(scope: Construct, stack: any) { // nodejs application pipeli
   codepipeline_iam_role.addManagedPolicy(iam.ManagedPolicy.fromManagedPolicyArn(scope, stack.name + "-CodePipelineMP2", "arn:aws:iam::aws:policy/AmazonS3FullAccess"));
   
   // Now that we have the policies set up, its time to create a s3 bucket for our code
-  const devops_node_s3_bucket = new s3.Bucket(scope, stack.name + "pipeline-storage", {
+  const devops_node_s3_bucket = new s3.Bucket(scope, stack.name + "-pipeline-storage", {
     versioned: true, 
-    bucketName: stack.name + "pipeline-storage"
-  })
+    bucketName: stack.name.toLowerCase( ) + "-pipeline-storage-" + String(new Date().getTime())
+  });
 
   // now we need our notification for deployment approvals - for the pipelines an additional parameter sns_email will be needed
+  const codepipeline_sns_topic = new sns.Topic(scope, stack.name + '-codepipeline-sns-topic', {
+    topicName: stack.name + '-codepipeline-sns-topic',
+    displayName: stack.name + "CodePipeline SNS Approval"
+  });
+  const codepipeline_sns_subscription = new sns.Subscription(scope, stack.name + "-codepipeline-sns-subscr", {
+    topic: codepipeline_sns_topic,
+    protocol: sns.SubscriptionProtocol.EMAIL,
+    endpoint: stack.sns_email
+  });
+
+  // now to make the codecommit repository...
+  const devops_node_repo = new codecommit.Repository(scope, stack.repo_name, {
+    repositoryName: stack.repo_name,
+    description: stack.name + " NodeJS Source Code Repo"
+  });
+  // now to make the codebuild construct
+  // now to make the codedeploy construct
+  // now to make the codepipline construct
+
+
 
 }
 
