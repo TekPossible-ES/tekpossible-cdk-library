@@ -24,4 +24,11 @@ function defineStacks(stacks_list: any, cdk_app: any){
   }); 
 }
 
-defineStacks(stack_config, app);
+// defineStacks(stack_config, app);
+// TESTING of cloudformation outputs
+new TekPossibleEnterpriseStack(app, 'TEST', {
+  environmentType: "devops-node",
+  name: "TEST",
+  canary: false,
+  sns_email: "test-notifications@tekpossible.com"
+});

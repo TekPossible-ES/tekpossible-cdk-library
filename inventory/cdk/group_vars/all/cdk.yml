@@ -1,9 +1,11 @@
 ---
 
 cdk_stacks:
-  - name: TekPossible-DevOps
-    description: Enterprise Services DevOps
-    canary: true
-    environmentSize: "large"
-    envirornmentType: "enterprise"
-    domain: "eit.tekpossible.aws"
+  - name: TekPossible-Resume-DevOps
+    description: DevOps Stack for my Resume
+    canary: false
+    envirornmentType: "devops-node"
+    reponame: "tekpossible-resume-node"
+    region: "us-east-2"
+    account: "" # need to get this information
+    sns_email: "resume-notifications@tekpossible.com"
