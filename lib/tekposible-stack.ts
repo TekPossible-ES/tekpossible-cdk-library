@@ -146,7 +146,13 @@ function devopsNode(scope: Construct, stack: any) { // nodejs application pipeli
 // }
 
 function stackNode(scope: Construct, stack: any){ // Nodejs application stack (node)
+  // Create Role for Codedeploy
+  const codedeploy_iam_role = new iam.Role(scope, stack.name + 'CodeDeployRole', {
+    roleName: stack.name + 'CodeDeployRole',
+    assumedBy: new iam.ServicePrincipal("ec2.amazonaws.com")
+  });
   // Create VPC/Subnet
+  codedeploy_iam_role.addManagedPolicy(iam.ManagedPolicy.fromManagedPolicyArn(scope, stack.name + "CDROLE", "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforAWSCodeDeploy"));
   const node_vpc = new ec2.Vpc(scope, stack.name + "-VPC",{
     ipAddresses: ec2.IpAddresses.cidr("10.0.0.0/16"),
     createInternetGateway: true,
@@ -166,7 +172,16 @@ function stackNode(scope: Construct, stack: any){ // Nodejs application stack (n
     trafficType: ec2.FlowLogTrafficType.ALL,
     maxAggregationInterval: ec2.FlowLogMaxAggregationInterval.TEN_MINUTES,
   });
+  // Create SecurityGroup
+  const node_sg = new ec2.SecurityGroup(scope, stack.name + "-Node-SG", {
+    vpc: node_vpc,
+    allowAllOutbound: true, 
+    securityGroupName: stack.name + "-Node-SG",
 
+  });
+  // Create Security Group
+  node_sg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(443));
+  node_sg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(80));
   // Create EC2 instance  
   const node_ec2 = new ec2.Instance(scope, stack.name + 'Node-Server', {
     vpc: node_vpc,
@@ -175,8 +190,10 @@ function stackNode(scope: Construct, stack: any){ // Nodejs application stack (n
     vpcSubnets: node_vpc.selectSubnets({
       subnetType: ec2.SubnetType.PUBLIC
     }),
+    role: codedeploy_iam_role,
+    securityGroup: node_sg
   });
-  const commands = readFileSync("../assets/configure.sh", "utf-8");
+  const commands = readFileSync("./assets/configure.sh", "utf-8");
   node_ec2.addUserData(commands);
   cdk.Tags.of(node_ec2).add('application_group', stack.codedeploy_app);
 
