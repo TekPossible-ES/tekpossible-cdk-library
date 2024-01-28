@@ -172,6 +172,7 @@ function stackNode(scope: Construct, stack: any){ // Nodejs application stack (n
     trafficType: ec2.FlowLogTrafficType.ALL,
     maxAggregationInterval: ec2.FlowLogMaxAggregationInterval.TEN_MINUTES,
   });
+
   // Create SecurityGroup
   const node_sg = new ec2.SecurityGroup(scope, stack.name + "-Node-SG", {
     vpc: node_vpc,
@@ -179,9 +180,12 @@ function stackNode(scope: Construct, stack: any){ // Nodejs application stack (n
     securityGroupName: stack.name + "-Node-SG",
 
   });
-  // Create Security Group
+
+  // Add Rules to Security Group
   node_sg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(443));
   node_sg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(80));
+  node_sg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22));
+
   // Create EC2 instance  
   const node_ec2 = new ec2.Instance(scope, stack.name + 'Node-Server', {
     vpc: node_vpc,
@@ -191,7 +195,8 @@ function stackNode(scope: Construct, stack: any){ // Nodejs application stack (n
       subnetType: ec2.SubnetType.PUBLIC
     }),
     role: codedeploy_iam_role,
-    securityGroup: node_sg
+    securityGroup: node_sg,
+    keyPair: ec2.KeyPair.fromKeyPairName(scope, stack.name  + "keypair", "ansible-keypair")
   });
   const commands = readFileSync("./assets/configure.sh", "utf-8");
   node_ec2.addUserData(commands);
