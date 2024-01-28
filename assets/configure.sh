@@ -5,4 +5,7 @@ wget https://aws-codedeploy-us-west-2.s3.us-west-2.amazonaws.com/latest/install
 chmod +x ./install
 ./install auto
 sudo dnf install httpd mod_ssl nodejs -y
-systemctl enable --now httpd
+sudo systemctl enable --now httpd
+sudo dnf install postgres15-server postgres15 -y
+sudo /usr/bin/postgresql-setup --initdb
+sudo systemctl enable --now postgresql
