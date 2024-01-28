@@ -23,13 +23,20 @@ function defineStacks(stacks_list: any, cdk_app: any){
     });
   }); 
 }
-
+// The multi stack part isn't really ready yet. Need to think about switching green to blue more
 // defineStacks(stack_config, app);
-// TESTING of cloudformation outputs
-new TekPossibleEnterpriseStack(app, 'TEST', {
+
+// Create CI/CD Pipeline for Resume
+new TekPossibleEnterpriseStack(app, 'TekPossible-Resume-DevOps', {
   environmentType: "devops-node",
-  name: "TEST",
-  canary: false,
-  sns_email: "test-notifications@tekpossible.com",
-  repo_name: "tekpossible-test-repo"
+  name: "TekPossible-Resume-DevOps",
+  sns_email: "resume-notifications@tekpossible.com",
+  repo_name: "tekpossible-resume"
+});
+
+// Create Infrastructure for Resume
+new TekPossibleEnterpriseStack(app, 'TekPossible-Resume', {
+  environmentType: "node",
+  name: "TekPossible-Resume",
+  codedeploy_app: "TekPossible-Resume-DevOps-CodeDeployApp"
 });

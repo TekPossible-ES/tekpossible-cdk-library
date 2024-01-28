@@ -1,0 +1,37 @@
+---
+
+- name: Create Stack Selector
+  ansible.builtin.set_fact:
+    stack_selected: []
+
+- name: Populate Selected Stack List
+  ansible.builtin.set_fact: 
+    stack_selected: "{{ stack_selected  + [item] }}"
+  when: 
+    - "stack.name in item"
+  loop: "{{ aws_deployed_stacks.cloudformation | list }}"
+
+- name: Determine how many stacks match our pattern
+  ansible.builtin.set_fact:
+    stack_selected_count: "{{ stack_selected | length }}"
+
+- name: If the number of stacks is zero set the deploy variable
+  set_fact:
+    cdk_stack_deploy: "{{ stack.name }}-<<TIME>>"
+  when: "stack_selected_count == '0'"
+
+- name: If the number of stacks is zero deploy a stack
+  include_tasks: "cdk_deploy.yml"
+  when: "stack_selected_count == '0'"
+
+- name: set the the deploy if the number of stacks is one
+  set_fact: 
+    cdk_stack_deploy: "{{ stack.name }}-<<TIME>>"
+  when: "(stack_selected_count == '1')"
+
+- name: If there is one stack deploy to GRN for canary and update if not canary
+  include_tasks: "cdk_deploy.yml"
+  when: "(stack_selected_count == '1')"
+
+- name: If there are two stacks we are in canary deployment we need to do extra steps before deploying
+  when: "(stack_selected_count == '2')"

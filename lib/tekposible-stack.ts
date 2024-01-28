@@ -11,6 +11,7 @@ import * as codedeploy from 'aws-cdk-lib/aws-codedeploy';
 import * as codepipeline from 'aws-cdk-lib/aws-codepipeline';
 import * as codepipeline_actions from 'aws-cdk-lib/aws-codepipeline-actions';
 import { SamlConsolePrincipal } from 'aws-cdk-lib/aws-iam';
+import { readFileSync } from 'fs';
 
 // There are four types of stacks we will create, all of which are determined via the environmentType parameter in config.json
 // 1. devops-node
@@ -62,44 +63,122 @@ function devopsNode(scope: Construct, stack: any) { // nodejs application pipeli
     description: stack.name + " NodeJS Source Code Repo"
   });
 
-  // make the codepipeline/codebuild/codedeploy and the links between all of the components made above
   const devops_node_pipeline = new codepipeline.Pipeline(scope, stack.name + "Pipeline", {
     pipelineName: stack.name + "Pipeline",
     artifactBucket: devops_node_s3_bucket,
     restartExecutionOnUpdate: false,
     role: codepipeline_iam_role
   });
-  const devops_node_pipeline_artifact = new codepipeline.Artifact(stack.name + "PipelineArtifactSource")
+  
+  const devops_node_pipeline_artifact_src = new codepipeline.Artifact(stack.name + "PipelineArtifactSource")
+  const devops_node_pipeline_artifact_out = new codepipeline.Artifact(stack.name + "PipelineArtifactOutput")
+  
   const devops_node_pipeline_src_action = new codepipeline_actions.CodeCommitSourceAction({
     repository: devops_node_repo,
     actionName: "SourceAction",
-    output: devops_node_pipeline_artifact
+    output: devops_node_pipeline_artifact_src
   });
+
   const devops_node_pipeline_src = devops_node_pipeline.addStage({
     stageName: "Source",
     actions: [devops_node_pipeline_src_action]
   });
+
   const devops_node_pipeline_build_codebuild = new codepipeline_actions.CodeBuildAction({
-    input: devops_node_pipeline_artifact,
+    input: devops_node_pipeline_artifact_src,
     actionName: "CodeBuild",
-    project: new codebuild.PipelineProject(scope, stack.name + "codebuild-project", {})
+    project: new codebuild.PipelineProject(scope, stack.name + "codebuild-project", {
+      environment: {
+        buildImage: codebuild.LinuxBuildImage.AMAZON_LINUX_2_5,
+        computeType: codebuild.ComputeType.SMALL
+      }
+    }),
+    outputs: [devops_node_pipeline_artifact_out]
   });
+
   const devops_node_pipeline_build = devops_node_pipeline.addStage({
     stageName: "Build",
     actions: [devops_node_pipeline_build_codebuild]
   });
 
+  const devops_codedeploy_application  = new codedeploy.ServerApplication(scope, stack.name + "-CodeDeployApp", {
+    applicationName: stack.name + "-CodeDeployApp"
+    
+  });
+
+  const devops_node_pipeline_approval_action = new codepipeline_actions.ManualApprovalAction({
+    actionName: "DeployApproval",
+    notificationTopic: codepipeline_sns_topic
+  });
+
+  const devops_node_pipeline_approval_stage = devops_node_pipeline.addStage({
+    stageName: "DeployApproval",
+    actions: [devops_node_pipeline_approval_action]
+  });
+
+  const devops_node_pipeline_deploy_codedeploy = new codepipeline_actions.CodeDeployServerDeployAction({
+    actionName: "CodeDeploy",
+    input: devops_node_pipeline_artifact_out,
+    deploymentGroup: new codedeploy.ServerDeploymentGroup(scope, stack.name + "-CodeDeployAppDG",  {
+      ec2InstanceTags: new codedeploy.InstanceTagSet({
+        "application_group": [stack.name + "-CodeDeployApp"]
+      }),
+      deploymentConfig: codedeploy.ServerDeploymentConfig.HALF_AT_A_TIME, // kinda canary
+      application: devops_codedeploy_application,
+      deploymentGroupName: stack.name + "-CodeDeployAppDG",
+      role: codepipeline_iam_role
+    })
+  });
+
+  const devops_node_pipeline_deploy = devops_node_pipeline.addStage({
+    stageName: "Deploy",
+    actions: [devops_node_pipeline_deploy_codedeploy]
+  });
+
 }
 
-function devopsIaC(scope: Construct, stack: any){ // Infrastructure as code pipeline and repo (devops-iac)
+// will implement at a later date
+// function devopsIaC(scope: Construct, stack: any){ // Infrastructure as code pipeline and repo (devops-iac)
+// }
 
-}
+// will implement at a later date
+// function stackDevEnv(scope: Construct, stack: any){ // Development Environment Stack (development)
+// }
 
 function stackNode(scope: Construct, stack: any){ // Nodejs application stack (node)
+  // Create VPC/Subnet
+  const node_vpc = new ec2.Vpc(scope, stack.name + "-VPC",{
+    ipAddresses: ec2.IpAddresses.cidr("10.0.0.0/16"),
+    createInternetGateway: true,
+    enableDnsHostnames: true,
+    enableDnsSupport: true,
+    maxAzs: 1,
+    vpcName: stack.name + "-VPC",
+    subnetConfiguration: [{
+      cidrMask: 24,
+      subnetType: ec2.SubnetType.PUBLIC,
+      name: stack.name + "VPC-PublicSubnet",
+      mapPublicIpOnLaunch: true
+    }]
+  });
 
-}
+  node_vpc.addFlowLog(stack.name + 'VPCFlowLogs', {
+    trafficType: ec2.FlowLogTrafficType.ALL,
+    maxAggregationInterval: ec2.FlowLogMaxAggregationInterval.TEN_MINUTES,
+  });
 
-function stackDevEnv(scope: Construct, stack: any){ // Development Environment Stack (development)
+  // Create EC2 instance  
+  const node_ec2 = new ec2.Instance(scope, stack.name + 'Node-Server', {
+    vpc: node_vpc,
+    machineImage: ec2.MachineImage.latestAmazonLinux2023(),
+    instanceType: ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
+    vpcSubnets: node_vpc.selectSubnets({
+      subnetType: ec2.SubnetType.PUBLIC
+    }),
+  });
+  const commands = readFileSync("../assets/configure.sh", "utf-8");
+  node_ec2.addUserData(commands);
+  cdk.Tags.of(node_ec2).add('application_group', stack.codedeploy_app);
 
 }
 
@@ -113,11 +192,14 @@ export class TekPossibleEnterpriseStack extends cdk.Stack {
     else if ( stack_config.environmentType == "node" ){
       stackNode(this, stack_config);
     }
-    else if ( stack_config.environmentType == "devops-iac" ){
-      devopsIaC(this, stack_config);
-    } else if ( stack_config.environmentType == "development" ) {
-      stackDevEnv(this, stack_config);
-    }
+    
+    // Will implement at a later date
+    // else if ( stack_config.environmentType == "devops-iac" ){
+    //   devopsIaC(this, stack_config);
+    // } else if ( stack_config.environmentType == "development" ) {
+    //   stackDevEnv(this, stack_config);
+    // }
+
     else {
       console.log("The specfied environmentType of " + stack_config.environmentType + " does not exist. Please check your configuration!");
       return;

@@ -1,0 +1,9 @@
+- name: Get information about the current stacks deployed
+  amazon.aws.cloudformation_info:
+  register: aws_deployed_stacks
+
+- name: Determine information about the requested stacks
+  include_tasks: "stack_info.yml"
+  loop: "{{ cdk_stacks }}"
+  loop_control:
+    loop_var: "stack"

@@ -1,0 +1,42 @@
+---
+
+- name: If there are 2 stacks we need to determine which one is the primary and secondary stack - green stack
+  set_fact:
+    green_stack: "{{ stack_selected[0] }}"
+  when: "(stack_selected_count == '2') and (stack_selected[0] > stack_selected[1]) "
+
+- name: If there are 2 stacks we need to determine which one is the primary and secondary stack - green stack
+  set_fact:
+    blue_stack: "{{ stack_selected[1] }}"
+  when: "(stack_selected_count == '2') and (stack_selected[0] > stack_selected[1])"
+
+- name: If there are 2 stacks we need to determine which one is the primary and secondary stack
+  set_fact:
+    green_stack: "{{ stack_selected[1] }}"
+  when: "(stack_selected_count == '2') and (stack_selected[1] > stack_selected[0])"
+
+- name: If there are 2 stacks we need to determine which one is the primary and secondary stack - green stack
+  set_fact:
+    blue_stack: "{{ stack_selected[0] }}"
+  when: "(stack_selected_count == '2') and (stack_selected[1] > stack_selected[0])"
+
+- name: If action is green then delete and make new green stack
+  shell:
+    cmd: |
+      aws cloudformation delete-stack --stack-name="{{ green_stack }}"
+  when: "(action == 'green') and (stack_selected_count == '2')"
+
+- name: If the number of stacks is zero set the deploy variable
+  set_fact:
+    cdk_stack_deploy: "{{ stack.name }}-<<TIME>>"
+  when: "(action == 'green') and (stack_selected_count == '2')"
+
+- name: If the number of stacks is zero deploy a stack
+  include_tasks: "cdk_deploy.yml"
+  when: "(action == 'green') and (stack_selected_count == '2')"
+
+- name: If action is blue then delete the blue stack and do not create a new stack
+  shell:
+    cmd: |
+      aws cloudformation delete-stack --stack-name="{{ blue_stack }}"
+  when: "(action == 'blue') and (stack_selected_count == '2')"
