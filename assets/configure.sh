@@ -6,6 +6,6 @@ chmod +x ./install
 ./install auto
 sudo dnf install httpd mod_ssl nodejs -y
 sudo systemctl enable --now httpd
-sudo dnf install postgres15-server postgres15 -y
+sudo dnf install postgresql15-server postgresql15 -y
 sudo /usr/bin/postgresql-setup --initdb
 sudo systemctl enable --now postgresql
