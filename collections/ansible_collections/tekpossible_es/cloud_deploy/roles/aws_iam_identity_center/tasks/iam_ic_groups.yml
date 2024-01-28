@@ -1,7 +1,0 @@
-- name: "AWS IAM-IC Group Creation via AWS CLI - {{ item.name }}"
-  shell:
-    cmd: |
-      aws identitystore create-group --identity-store-id='{{ aws_iam_ic_idstore_id.stdout }}' --display-name='{{ item.name }}'
-  register: results_group_created
-  failed_when: "('Duplicate' not in results_group_created.stderr) and (results_group_created.rc != 0)"
-  changed_when: "'Duplicate' not in results_group_created.stderr"

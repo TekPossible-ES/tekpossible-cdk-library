@@ -1,5 +1,0 @@
----
-
-- name: DEBUG
-  debug: 
-    msg: "The stack {{ cdk_stack_deploy }} will be deployed once this part is written"
