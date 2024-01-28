@@ -20,7 +20,7 @@
   hosts: localhost
   become: False
   roles:
-    - tekpossible_es.cloud_deploy.aws_cfn_deploy
+    - aws_cfn_deploy
     # TODO: 
     # 1. List stacks with current config in inventory
     # 2. Determine which stack is the BLUE and which is GREEN
