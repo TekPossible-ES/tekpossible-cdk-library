@@ -6,6 +6,10 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as codecommit from 'aws-cdk-lib/aws-codecommit';
+import * as codebuild from 'aws-cdk-lib/aws-codebuild';
+import * as codedeploy from 'aws-cdk-lib/aws-codedeploy';
+import * as codepipeline from 'aws-cdk-lib/aws-codepipeline';
+import * as codepipeline_actions from 'aws-cdk-lib/aws-codepipeline-actions';
 import { SamlConsolePrincipal } from 'aws-cdk-lib/aws-iam';
 
 // There are four types of stacks we will create, all of which are determined via the environmentType parameter in config.json
@@ -57,11 +61,33 @@ function devopsNode(scope: Construct, stack: any) { // nodejs application pipeli
     repositoryName: stack.repo_name,
     description: stack.name + " NodeJS Source Code Repo"
   });
-  // now to make the codebuild construct
-  // now to make the codedeploy construct
-  // now to make the codepipline construct
 
-
+  // make the codepipeline/codebuild/codedeploy and the links between all of the components made above
+  const devops_node_pipeline = new codepipeline.Pipeline(scope, stack.name + "Pipeline", {
+    pipelineName: stack.name + "Pipeline",
+    artifactBucket: devops_node_s3_bucket,
+    restartExecutionOnUpdate: false,
+    role: codepipeline_iam_role
+  });
+  const devops_node_pipeline_artifact = new codepipeline.Artifact(stack.name + "PipelineArtifactSource")
+  const devops_node_pipeline_src_action = new codepipeline_actions.CodeCommitSourceAction({
+    repository: devops_node_repo,
+    actionName: "SourceAction",
+    output: devops_node_pipeline_artifact
+  });
+  const devops_node_pipeline_src = devops_node_pipeline.addStage({
+    stageName: "Source",
+    actions: [devops_node_pipeline_src_action]
+  });
+  const devops_node_pipeline_build_codebuild = new codepipeline_actions.CodeBuildAction({
+    input: devops_node_pipeline_artifact,
+    actionName: "CodeBuild",
+    project: new codebuild.PipelineProject(scope, stack.name + "codebuild-project", {})
+  });
+  const devops_node_pipeline_build = devops_node_pipeline.addStage({
+    stageName: "Build",
+    actions: [devops_node_pipeline_build_codebuild]
+  });
 
 }
 
@@ -96,6 +122,5 @@ export class TekPossibleEnterpriseStack extends cdk.Stack {
       console.log("The specfied environmentType of " + stack_config.environmentType + " does not exist. Please check your configuration!");
       return;
     }
-
   }
 }
