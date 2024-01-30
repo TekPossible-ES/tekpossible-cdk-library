@@ -201,7 +201,9 @@ function stackNode(scope: Construct, stack: any){ // Nodejs application stack (n
   const commands = readFileSync("./assets/configure.sh", "utf-8");
   node_ec2.addUserData(commands);
   cdk.Tags.of(node_ec2).add('application_group', stack.codedeploy_app);
-
+  const node_eip = new ec2.CfnEIP(scope, stack.name + "-EIP", {
+    instanceId: node_ec2.instanceId
+  });
 }
 
 // TODO: Figure out what I need to do here to scale up/down the stack. Do I want the environment size to change what I deploy?
