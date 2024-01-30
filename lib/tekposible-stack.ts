@@ -123,7 +123,7 @@ function devopsNode(scope: Construct, stack: any) { // nodejs application pipeli
       ec2InstanceTags: new codedeploy.InstanceTagSet({
         "application_group": [stack.name + "-CodeDeployApp"]
       }),
-      deploymentConfig: codedeploy.ServerDeploymentConfig.HALF_AT_A_TIME, // kinda canary
+      deploymentConfig: codedeploy.ServerDeploymentConfig.ALL_AT_ONCE, // kinda canary
       application: devops_codedeploy_application,
       deploymentGroupName: stack.name + "-CodeDeployAppDG",
       role: codepipeline_iam_role
