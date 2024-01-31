@@ -1,9 +1,10 @@
 #!/bin/bash
 
 cd /home/ec2-user
+sudo dnf install ruby -y
 wget https://aws-codedeploy-us-west-2.s3.us-west-2.amazonaws.com/latest/install
 chmod +x ./install
-./install auto
+sudo ./install auto
 sudo dnf install httpd mod_ssl nodejs -y
 sudo systemctl enable --now httpd
 sudo dnf install postgresql15-server postgresql15 -y
