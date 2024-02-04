@@ -1,3 +1,2 @@
 #!/bin/bash
-sudo killall -9 ansible
-sudo killall -9 cdk
+sudo echo "You can stop the process - it was always running since the server started"
