@@ -4,16 +4,16 @@ phases:
     commands:
       - echo "Installing lint/sast software..."
       - pip install -q ansible-core ansible-lint report2junit
-      - yum install -y npm ruby
+      - yum install -y nodejs ruby
       - gem install cfn-nag
-      - npm install -g sarif-junit@latest typescript cdk aws-cdk aws-cdk-lib
+      - npm install sarif-junit@latest typescript cdk aws-cdk aws-cdk-lib
       - wget -q https://github.com/Checkmarx/kics/releases/download/v1.5.0/kics_1.5.0_linux_x64.tar.gz
       - tar -xf kics_1.5.0_linux_x64.tar.gz
       - echo "LINT/SAST Dependencies installed"
   pre_build:
     commands:
       - echo "Generating Cloudformation templates from CDK code..."
-      - /usr/local/bin/cdk synth
+      - npx cdk synth
       - echo "Checking CDK code for security recommendations..."
       - cfn_nag_scan --input-path ./cdk.out/*template.json -o json > ./cfn_nag_results.json
       - report2junit ./cfn_nag_results.json --ignore-failures
