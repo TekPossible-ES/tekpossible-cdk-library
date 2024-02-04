@@ -43,7 +43,7 @@ function devopsNode(scope: Construct, stack: any) { // nodejs application pipeli
   // Now that we have the policies set up, its time to create a s3 bucket for our code
   const devops_node_s3_bucket = new s3.Bucket(scope, stack.name + "-pipeline-storage", {
     versioned: true, 
-    bucketName: stack.name.toLowerCase( ) + "-pipeline-storage-" + String(new Date().getTime())
+    bucketName: stack.name.toLowerCase( ) + "-pipeline-storage-" + stack.repo_name
   });
 
   // now we need our notification for deployment approvals - for the pipelines an additional parameter sns_email will be needed
@@ -225,7 +225,7 @@ function devopsIaC(scope: Construct, stack: any) { // Implements an CI/CD Pipeli
   // Now that we have the policies set up, its time to create a s3 bucket for our code
   const devops_iac_s3_bucket = new s3.Bucket(scope, stack.name + "-pipeline-storage", {
     versioned: true, 
-    bucketName: stack.name.toLowerCase( ) + "-pipeline-storage-" + String(new Date().getTime())
+    bucketName: stack.name.toLowerCase( ) + "-pipeline-storage-" + stack.repo_name
   });
 
   // now we need our notification for deployment approvals - for the pipelines an additional parameter sns_email will be needed
