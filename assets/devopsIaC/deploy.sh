@@ -1,2 +1,2 @@
 #!/bin/bash
-sudo cdk deploy --all --no-notices --require-approval never
+sudo /usr/local/bin/cdk deploy --all --no-notices --require-approval never

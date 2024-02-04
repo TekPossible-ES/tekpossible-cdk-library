@@ -2,4 +2,4 @@
 cd /home/ec2-user/cdk
 sudo dnf install -y ansible-core node
 sudo npm install -g typescript aws-cdk
-sudo cdk bootstrap
+sudo /usr/local/bin/cdk bootstrap

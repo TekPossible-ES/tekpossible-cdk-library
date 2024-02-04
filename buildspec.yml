@@ -13,7 +13,7 @@ phases:
   pre_build:
     commands:
       - echo "Generating Cloudformation templates from CDK code..."
-      - cdk synth
+      - /usr/local/bin/cdk synth
       - echo "Checking CDK code for security recommendations..."
       - cfn_nag_scan --input-path ./cdk.out/*template.json -o json > ./cfn_nag_results.json
       - report2junit ./cfn_nag_results.json --ignore-failures
