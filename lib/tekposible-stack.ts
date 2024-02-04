@@ -325,7 +325,7 @@ function devopsIaC(scope: Construct, stack: any) { // Implements an CI/CD Pipeli
 
   // Create VPC/Subnet
   codedeploy_iam_role.addManagedPolicy(iam.ManagedPolicy.fromManagedPolicyArn(scope, stack.name + "CDROLE", "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforAWSCodeDeploy"));
-  const node_vpc = new ec2.Vpc(scope, stack.name + "-VPC", {
+  const devops_iac_vpc = new ec2.Vpc(scope, stack.name + "-VPC", {
     ipAddresses: ec2.IpAddresses.cidr("10.0.0.0/16"),
     createInternetGateway: true,
     enableDnsHostnames: true,
@@ -347,37 +347,37 @@ function devopsIaC(scope: Construct, stack: any) { // Implements an CI/CD Pipeli
     }]
   });
 
-  node_vpc.addFlowLog(stack.name + 'VPCFlowLogs', {
+  devops_iac_vpc.addFlowLog(stack.name + 'VPCFlowLogs', {
     trafficType: ec2.FlowLogTrafficType.ALL,
     maxAggregationInterval: ec2.FlowLogMaxAggregationInterval.TEN_MINUTES,
   });
 
   // Create SecurityGroup
-  const node_sg = new ec2.SecurityGroup(scope, stack.name + "-Node-SG", {
-    vpc: node_vpc,
+  const devops_iac_sg = new ec2.SecurityGroup(scope, stack.name + "-devops_iac-SG", {
+    vpc: devops_iac_vpc,
     allowAllOutbound: true, 
-    securityGroupName: stack.name + "-Node-SG",
+    securityGroupName: stack.name + "-devops_iac-SG",
 
   });
 
   // Add Rules to Security Group
-  node_sg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22));
+  devops_iac_sg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22));
 
   // Create EC2 instance  
-  const node_ec2 = new ec2.Instance(scope, stack.name + 'IaC-Server', {
-    vpc: node_vpc,
+  const devops_iac_ec2 = new ec2.Instance(scope, stack.name + 'IaC-Server', {
+    vpc: devops_iac_vpc,
     machineImage: ec2.MachineImage.latestAmazonLinux2023(),
     instanceType: ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
-    vpcSubnets: node_vpc.selectSubnets({
+    vpcSubnets: devops_iac_vpc.selectSubnets({
       subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS
     }),
     role: codedeploy_iam_role,
-    securityGroup: node_sg,
+    securityGroup: devops_iac_sg,
     keyPair: ec2.KeyPair.fromKeyPairName(scope, stack.name  + "keypair", "ansible-keypair")
   });
   const commands = readFileSync("./assets/devopsIaC/configure.sh", "utf-8");
-  node_ec2.addUserData(commands);
-  cdk.Tags.of(node_ec2).add('application_group', stack.codedeploy_app);
+  devops_iac_ec2.addUserData(commands);
+  cdk.Tags.of(devops_iac_ec2).add('application_group', stack.name + "-CodeDeployApp");
 }
 
 // TODO: Figure out what I need to do here to scale up/down the stack. Do I want the environment size to change what I deploy?

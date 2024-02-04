@@ -1,2 +1,18 @@
----
-
+version: 0.0
+os: linux
+files:
+- source: "/"
+  destination: "/home/ec2-user/cdk/"
+hooks:
+  AfterInstall:
+  - location: "assets/devopsIaC/bootstrap.sh"
+    timeout: 300
+    runas: root
+  ApplicationStart:
+  - location: "assets/devopsIaC/deploy.sh"
+    timeout: 600
+    runas: root   
+  ApplicationStop:
+  - location: "assets/devopsIaC/stop.sh"
+    timeout: 600
+    runas: root   
