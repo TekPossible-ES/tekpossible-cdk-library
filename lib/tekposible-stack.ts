@@ -138,10 +138,6 @@ function devopsNode(scope: Construct, stack: any) { // nodejs application pipeli
 }
 
 // will implement at a later date
-// function devopsIaC(scope: Construct, stack: any){ // Infrastructure as code pipeline and repo (devops-iac)
-// }
-
-// will implement at a later date
 // function stackDevEnv(scope: Construct, stack: any){ // Development Environment Stack (development)
 // }
 
@@ -198,12 +194,129 @@ function stackNode(scope: Construct, stack: any){ // Nodejs application stack (n
     securityGroup: node_sg,
     keyPair: ec2.KeyPair.fromKeyPairName(scope, stack.name  + "keypair", "ansible-keypair")
   });
-  const commands = readFileSync("./assets/configure.sh", "utf-8");
+  const commands = readFileSync("./assets/stackNode/configure.sh", "utf-8");
   node_ec2.addUserData(commands);
   cdk.Tags.of(node_ec2).add('application_group', stack.codedeploy_app);
   const node_eip = new ec2.CfnEIP(scope, stack.name + "-EIP", {
     instanceId: node_ec2.instanceId
   });
+}
+
+
+function devopsIaC(scope: Construct, stack: any) { // Implements an CI/CD Pipeline for IaC Repositories
+  // In order to use codepipeline codecommit and codedeploy, we need a role which can access those things
+  const codepipeline_iam_role = new iam.Role(scope, stack.name + '-CodePipelineRole', {
+    assumedBy: new iam.CompositePrincipal(
+      new iam.ServicePrincipal("ec2.amazonaws.com"),
+      new iam.ServicePrincipal("codebuild.amazonaws.com"),
+      new iam.ServicePrincipal("codedeploy.amazonaws.com"), 
+      new iam.ServicePrincipal("codecommit.amazonaws.com"),
+      new iam.ServicePrincipal("cloudformation.amazonaws.com"),
+      new iam.ServicePrincipal("sns.amazonaws.com"),
+      new iam.ServicePrincipal("codepipeline.amazonaws.com"),
+      new iam.ServicePrincipal("s3.amazonaws.com") 
+    ),
+    roleName: stack.name + '-CodePipelineRole'
+
+  });
+  codepipeline_iam_role.addManagedPolicy(iam.ManagedPolicy.fromManagedPolicyArn(scope, stack.name + "-CodePipelineMP1", "arn:aws:iam::aws:policy/service-role/AWSCodeStarServiceRole"));
+  codepipeline_iam_role.addManagedPolicy(iam.ManagedPolicy.fromManagedPolicyArn(scope, stack.name + "-CodePipelineMP2", "arn:aws:iam::aws:policy/AmazonS3FullAccess"));
+  
+  // Now that we have the policies set up, its time to create a s3 bucket for our code
+  const devops_iac_s3_bucket = new s3.Bucket(scope, stack.name + "-pipeline-storage", {
+    versioned: true, 
+    bucketName: stack.name.toLowerCase( ) + "-pipeline-storage-" + String(new Date().getTime())
+  });
+
+  // now we need our notification for deployment approvals - for the pipelines an additional parameter sns_email will be needed
+  const codepipeline_sns_topic = new sns.Topic(scope, stack.name + '-codepipeline-sns-topic', {
+    topicName: stack.name + '-codepipeline-sns-topic',
+    displayName: stack.name + "CodePipeline SNS Approval"
+  });
+  const codepipeline_sns_subscription = new sns.Subscription(scope, stack.name + "-codepipeline-sns-subscr", {
+    topic: codepipeline_sns_topic,
+    protocol: sns.SubscriptionProtocol.EMAIL,
+    endpoint: stack.sns_email
+  });
+
+  // now to make the codecommit repository...
+  const devops_iac_repo = new codecommit.Repository(scope, stack.repo_name, {
+    repositoryName: stack.repo_name,
+    description: stack.name + " Infrastructure as Code Repo"
+  });
+
+  const devops_iac_pipeline = new codepipeline.Pipeline(scope, stack.name + "Pipeline", {
+    pipelineName: stack.name + "Pipeline",
+    artifactBucket: devops_iac_s3_bucket,
+    restartExecutionOnUpdate: false,
+    role: codepipeline_iam_role
+  });
+  
+  const devops_iac_pipeline_artifact_src = new codepipeline.Artifact(stack.name + "PipelineArtifactSource")
+  const devops_iac_pipeline_artifact_out = new codepipeline.Artifact(stack.name + "PipelineArtifactOutput")
+  
+  const devops_iac_pipeline_src_action = new codepipeline_actions.CodeCommitSourceAction({
+    repository: devops_iac_repo,
+    actionName: "SourceAction",
+    output: devops_iac_pipeline_artifact_src
+  });
+
+  const devops_iac_pipeline_src = devops_iac_pipeline.addStage({
+    stageName: "Source",
+    actions: [devops_iac_pipeline_src_action]
+  });
+
+  const devops_iac_pipeline_build_codebuild = new codepipeline_actions.CodeBuildAction({
+    input: devops_iac_pipeline_artifact_src,
+    actionName: "CodeBuild",
+    project: new codebuild.PipelineProject(scope, stack.name + "codebuild-project", {
+      environment: {
+        buildImage: codebuild.LinuxBuildImage.AMAZON_LINUX_2_5,
+        computeType: codebuild.ComputeType.SMALL
+      }
+    }),
+    outputs: [devops_iac_pipeline_artifact_out]
+  });
+
+  const devops_iac_pipeline_build = devops_iac_pipeline.addStage({
+    stageName: "Build",
+    actions: [devops_iac_pipeline_build_codebuild]
+  });
+
+  const devops_codedeploy_application  = new codedeploy.ServerApplication(scope, stack.name + "-CodeDeployApp", {
+    applicationName: stack.name + "-CodeDeployApp"
+    
+  });
+
+  const devops_iac_pipeline_approval_action = new codepipeline_actions.ManualApprovalAction({
+    actionName: "DeployApproval",
+    notificationTopic: codepipeline_sns_topic
+  });
+
+  const devops_iac_pipeline_approval_stage = devops_iac_pipeline.addStage({
+    stageName: "DeployApproval",
+    actions: [devops_iac_pipeline_approval_action]
+  });
+
+  const devops_iac_pipeline_deploy_codedeploy = new codepipeline_actions.CodeDeployServerDeployAction({
+    actionName: "CodeDeploy",
+    input: devops_iac_pipeline_artifact_out,
+    deploymentGroup: new codedeploy.ServerDeploymentGroup(scope, stack.name + "-CodeDeployAppDG",  {
+      ec2InstanceTags: new codedeploy.InstanceTagSet({
+        "application_group": [stack.name + "-CodeDeployApp"]
+      }),
+      deploymentConfig: codedeploy.ServerDeploymentConfig.ALL_AT_ONCE,
+      application: devops_codedeploy_application,
+      deploymentGroupName: stack.name + "-CodeDeployAppDG",
+      role: codepipeline_iam_role
+    })
+  });
+
+  const devops_iac_pipeline_deploy = devops_iac_pipeline.addStage({
+    stageName: "Deploy",
+    actions: [devops_iac_pipeline_deploy_codedeploy]
+  });
+
 }
 
 // TODO: Figure out what I need to do here to scale up/down the stack. Do I want the environment size to change what I deploy?
@@ -218,11 +331,11 @@ export class TekPossibleEnterpriseStack extends cdk.Stack {
     }
     
     // Will implement at a later date
-    // else if ( stack_config.environmentType == "devops-iac" ){
-    //   devopsIaC(this, stack_config);
+    else if ( stack_config.environmentType == "devops-iac" ){
+      devopsIaC(this, stack_config);
     // } else if ( stack_config.environmentType == "development" ) {
     //   stackDevEnv(this, stack_config);
-    // }
+    }
 
     else {
       console.log("The specfied environmentType of " + stack_config.environmentType + " does not exist. Please check your configuration!");

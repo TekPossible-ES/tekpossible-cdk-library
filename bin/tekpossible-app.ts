@@ -2,7 +2,7 @@
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import { TekPossibleEnterpriseStack } from '../lib/tekposible-stack';
-import stack_config from '../config/config.json'; // This will exist after running the ansible
+//import stack_config from '../config/config.json'; // This will exist after running the ansible
 const app = new cdk.App();
 // The point of this function is to make multiple stacks and to insert the 
 // time into the stack name so they are unique and managable.
@@ -39,4 +39,10 @@ new TekPossibleEnterpriseStack(app, 'TekPossible-Resume', {
   environmentType: "node",
   name: "TekPossible-Resume",
   codedeploy_app: "TekPossible-Resume-DevOps-CodeDeployApp"
+});
+
+// Create CI/CD Pipeline for this code repository
+new TekPossibleEnterpriseStack(app, 'TekPossible-IaC-DevOps', {
+  environmentType: "devops-iac",
+  name: "TekPossible-IaC-DevOps",
 });
