@@ -1,5 +1,4 @@
 #!/bin/bash
+sudo chown -R ec2-user /home/ec2-user/cdk
 cd /home/ec2-user/cdk
-sudo dnf install -y ansible-core node
-sudo npm install -g typescript aws-cdk
-sudo /usr/local/bin/cdk bootstrap
+npx cdk bootstrap
