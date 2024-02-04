@@ -309,7 +309,7 @@ function devopsIaC(scope: Construct, stack: any) { // Implements an CI/CD Pipeli
       application: devops_codedeploy_application,
       deploymentGroupName: stack.name + "-CodeDeployAppDG",
       role: codepipeline_iam_role
-    })
+    })      
   });
 
   const devops_iac_pipeline_deploy = devops_iac_pipeline.addStage({
@@ -317,6 +317,67 @@ function devopsIaC(scope: Construct, stack: any) { // Implements an CI/CD Pipeli
     actions: [devops_iac_pipeline_deploy_codedeploy]
   });
 
+  // Create Role for Codedeploy
+  const codedeploy_iam_role = new iam.Role(scope, stack.name + 'CodeDeployRole', {
+    roleName: stack.name + 'CodeDeployRole',
+    assumedBy: new iam.ServicePrincipal("ec2.amazonaws.com")
+  });
+
+  // Create VPC/Subnet
+  codedeploy_iam_role.addManagedPolicy(iam.ManagedPolicy.fromManagedPolicyArn(scope, stack.name + "CDROLE", "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforAWSCodeDeploy"));
+  const node_vpc = new ec2.Vpc(scope, stack.name + "-VPC", {
+    ipAddresses: ec2.IpAddresses.cidr("10.0.0.0/16"),
+    createInternetGateway: true,
+    enableDnsHostnames: true,
+    enableDnsSupport: true,
+    maxAzs: 1,
+    natGateways: 1,
+    vpcName: stack.name + "-VPC",
+    subnetConfiguration: [{
+      cidrMask: 24,
+      subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+      name: stack.name + "VPC-PrivateSubnet",
+      mapPublicIpOnLaunch: false
+    }, 
+    {
+      cidrMask: 24,
+      subnetType: ec2.SubnetType.PUBLIC,
+      name: stack.name + "VPC-PublicSubnet",
+      mapPublicIpOnLaunch: true
+    }]
+  });
+
+  node_vpc.addFlowLog(stack.name + 'VPCFlowLogs', {
+    trafficType: ec2.FlowLogTrafficType.ALL,
+    maxAggregationInterval: ec2.FlowLogMaxAggregationInterval.TEN_MINUTES,
+  });
+
+  // Create SecurityGroup
+  const node_sg = new ec2.SecurityGroup(scope, stack.name + "-Node-SG", {
+    vpc: node_vpc,
+    allowAllOutbound: true, 
+    securityGroupName: stack.name + "-Node-SG",
+
+  });
+
+  // Add Rules to Security Group
+  node_sg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22));
+
+  // Create EC2 instance  
+  const node_ec2 = new ec2.Instance(scope, stack.name + 'IaC-Server', {
+    vpc: node_vpc,
+    machineImage: ec2.MachineImage.latestAmazonLinux2023(),
+    instanceType: ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
+    vpcSubnets: node_vpc.selectSubnets({
+      subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS
+    }),
+    role: codedeploy_iam_role,
+    securityGroup: node_sg,
+    keyPair: ec2.KeyPair.fromKeyPairName(scope, stack.name  + "keypair", "ansible-keypair")
+  });
+  const commands = readFileSync("./assets/devopsIaC/configure.sh", "utf-8");
+  node_ec2.addUserData(commands);
+  cdk.Tags.of(node_ec2).add('application_group', stack.codedeploy_app);
 }
 
 // TODO: Figure out what I need to do here to scale up/down the stack. Do I want the environment size to change what I deploy?
