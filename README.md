@@ -1,12 +1,15 @@
-# TekPossible - Example Defense Contractor Cloud Deployment
+# TekPossible - Enterprise IaC Library
 
-## Architecture Overview
-![TekPossible Architecture Overview](./docs/tekpossible-arch-overview.png)
+## Purpose 
+This repository serves as the main infrastructure as code repository for the following projects: 
+1. TekPossible-ES-DevEnv (FUTURE)
+2. [TekPossible-Resume](https://github.com/GrifKies/tekpossible-resume)
+3. TekPossible-INTERPIL (FUTURE)
 
-In order to accurately depict a defense contractor network, the network must be compartmenalized. For example, my enterprise environment (development and other corporate networks) will be managed by a different I.T department than one that focuses on a specific project's production network. In order to account for this, I wrote ansible automation do the following things which make deploying a scalable defense contractor platform easier:
+This CDK implementation has the following types of stacks:
+1. NodeJS Stack - A stack that deploys a PostgreSQL and NodeJS EC2 instance based on the lastest Amazon Linux 2023 AMI (DONE)
+2. NodeJS DevOps Stack - A stack that deploys a repo for the nodejs application and a pipeline consisting of codebuild and codedeploy for the application (DONE)
+3. DevEnv Stack - A stack that deploys a Mattermost server, a tailscale server for VPN access, and an autoscaling EC2 instance for development (via vscode remote)(FUTURE)
+4. IaC DevOps Stack - A stack that deploy a CI/CD Pipeline for my CDK and ansible code. It also deploys a EC2 instance to run the CDK/Ansible resources. (IN PROGRESS)
 
-1. The TekPossible-Enterprise Repository (this repo) contains the code to deploy the development and internet accessible (NAT, public ELB, etc) networks that are managed by the Enterprise I.T (EIT) department. IAM Identity Center Permission Sets, Users, and Groups are created for the EIT Department and permission boundaries are used to restrict their access to only enterprise resources.
-
-2. CloudFormation templates are created in this repo which are parameterized so that programs run by TekPossible are able to use prevetted security checks for their IaC. 
-
-For a more detailed look at the architecture, see [TekPossible Architecture - Deep Dive](./docs/tekpossible-arch-overview.png).
+More documentation regarding the environment can be found [here](https://github.com/TekPossible-ES/tekpossible-aws)
