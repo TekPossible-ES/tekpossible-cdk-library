@@ -45,4 +45,6 @@ new TekPossibleEnterpriseStack(app, 'TekPossible-Resume', {
 new TekPossibleEnterpriseStack(app, 'TekPossible-IaC-DevOps', {
   environmentType: "devops-iac",
   name: "TekPossible-IaC-DevOps",
+  sns_email: "iac-notifications@tekpossible.com",
+  repo_name: "tekpossible-iac-library"
 });

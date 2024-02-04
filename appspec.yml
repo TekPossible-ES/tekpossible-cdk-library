@@ -10,7 +10,7 @@ hooks:
     runas: root
   ApplicationStart:
   - location: "assets/devopsIaC/deploy.sh"
-    timeout: 600
+    timeout: 900
     runas: root   
   ApplicationStop:
   - location: "assets/devopsIaC/stop.sh"

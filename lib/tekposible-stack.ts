@@ -322,62 +322,8 @@ function devopsIaC(scope: Construct, stack: any) { // Implements an CI/CD Pipeli
     roleName: stack.name + 'CodeDeployRole',
     assumedBy: new iam.ServicePrincipal("ec2.amazonaws.com")
   });
-
-  // Create VPC/Subnet
-  codedeploy_iam_role.addManagedPolicy(iam.ManagedPolicy.fromManagedPolicyArn(scope, stack.name + "CDROLE", "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforAWSCodeDeploy"));
-  const devops_iac_vpc = new ec2.Vpc(scope, stack.name + "-VPC", {
-    ipAddresses: ec2.IpAddresses.cidr("10.0.0.0/16"),
-    createInternetGateway: true,
-    enableDnsHostnames: true,
-    enableDnsSupport: true,
-    maxAzs: 1,
-    natGateways: 1,
-    vpcName: stack.name + "-VPC",
-    subnetConfiguration: [{
-      cidrMask: 24,
-      subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
-      name: stack.name + "VPC-PrivateSubnet",
-      mapPublicIpOnLaunch: false
-    }, 
-    {
-      cidrMask: 24,
-      subnetType: ec2.SubnetType.PUBLIC,
-      name: stack.name + "VPC-PublicSubnet",
-      mapPublicIpOnLaunch: true
-    }]
-  });
-
-  devops_iac_vpc.addFlowLog(stack.name + 'VPCFlowLogs', {
-    trafficType: ec2.FlowLogTrafficType.ALL,
-    maxAggregationInterval: ec2.FlowLogMaxAggregationInterval.TEN_MINUTES,
-  });
-
-  // Create SecurityGroup
-  const devops_iac_sg = new ec2.SecurityGroup(scope, stack.name + "-devops_iac-SG", {
-    vpc: devops_iac_vpc,
-    allowAllOutbound: true, 
-    securityGroupName: stack.name + "-devops_iac-SG",
-
-  });
-
-  // Add Rules to Security Group
-  devops_iac_sg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22));
-
-  // Create EC2 instance  
-  const devops_iac_ec2 = new ec2.Instance(scope, stack.name + 'IaC-Server', {
-    vpc: devops_iac_vpc,
-    machineImage: ec2.MachineImage.latestAmazonLinux2023(),
-    instanceType: ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
-    vpcSubnets: devops_iac_vpc.selectSubnets({
-      subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS
-    }),
-    role: codedeploy_iam_role,
-    securityGroup: devops_iac_sg,
-    keyPair: ec2.KeyPair.fromKeyPairName(scope, stack.name  + "keypair", "ansible-keypair")
-  });
-  const commands = readFileSync("./assets/devopsIaC/configure.sh", "utf-8");
-  devops_iac_ec2.addUserData(commands);
-  cdk.Tags.of(devops_iac_ec2).add('application_group', stack.name + "-CodeDeployApp");
+  const iac_message = "You are almost done deploying this stack. In order to avoid a chicken and the egg scenario (Using CDK to deploy the EC2 instance that deploys the CDK), you need to manually deploy the EC2 instance prior to the intial push to the codecommit repo. If you have already done this, then please disregard this message. If you have not, please make sure to sure the following tag: \n\"application_group\":\"" + stack.name + "-CodeDeployApp" +  "\"\n"
+  console.log(iac_message);
 }
 
 // TODO: Figure out what I need to do here to scale up/down the stack. Do I want the environment size to change what I deploy?
