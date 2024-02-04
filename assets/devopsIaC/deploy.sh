@@ -1,2 +1,2 @@
 #!/bin/bash
-cdk deploy --all --no-notices --require-approval never
+npx cdk deploy --all --no-notices --require-approval never
