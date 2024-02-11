@@ -147,6 +147,33 @@ function stackDevEnv(scope: Construct, stack: any){ // Development Environment S
   // Create VPC
   // Create Mattermost EC2 Instance
   // Create Development EC2 Instance
+  const dev_vpc = new ec2.Vpc(scope, stack.name + "-VPC", {
+    ipAddresses: ec2.IpAddresses.cidr("10.0.0.0/16"),
+    createInternetGateway: true,
+    enableDnsHostnames: true,
+    enableDnsSupport: true,
+    maxAzs: 1,
+    vpcName: stack.name + "-VPC",
+    natGateways: 1,
+    subnetConfiguration: [{
+      cidrMask: 24,
+      subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+      name: stack.name + "-VPC-PrivateSubnet"
+    }, 
+    {
+      cidrMask: 24,
+      subnetType: ec2.SubnetType.PUBLIC,
+      name: stack.name + "-VPC-PublicSubnet",
+      mapPublicIpOnLaunch: true
+    }]
+  });
+
+  dev_vpc.addFlowLog(stack.name + "-VPCFlowLogs", {
+    trafficType: ec2.FlowLogTrafficType.ALL,
+    maxAggregationInterval: ec2.FlowLogMaxAggregationInterval.TEN_MINUTES
+  });
+  
+
 }
 
 function stackNode(scope: Construct, stack: any){ // Nodejs application stack (node)

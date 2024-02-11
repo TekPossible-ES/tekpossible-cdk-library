@@ -1,2 +1,3 @@
 #!/bin/bash
-# Configuration for VSCode and Tailscale VPN Server
+# Setup and Install Tailscale
+sudo curl -fsSL https://tailscale.com/install.sh | sh
