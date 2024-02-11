@@ -10,6 +10,7 @@ import * as codebuild from 'aws-cdk-lib/aws-codebuild';
 import * as codedeploy from 'aws-cdk-lib/aws-codedeploy';
 import * as codepipeline from 'aws-cdk-lib/aws-codepipeline';
 import * as codepipeline_actions from 'aws-cdk-lib/aws-codepipeline-actions';
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { SamlConsolePrincipal } from 'aws-cdk-lib/aws-iam';
 import { readFileSync } from 'fs';
 
@@ -17,7 +18,7 @@ import { readFileSync } from 'fs';
 // 1. devops-node
 // 2. devops-iac
 // 3. node
-// 4. development
+// 4. development/enterprise services stack
 // The first two are the pipeline stacks, the second two are the infrastructure stacks
 // For the moment, my development will focus on node and devops-node for my resume site.
 
@@ -140,8 +141,13 @@ function devopsNode(scope: Construct, stack: any) { // nodejs application pipeli
 }
 
 // will implement at a later date
-// function stackDevEnv(scope: Construct, stack: any){ // Development Environment Stack (development)
-// }
+function stackDevEnv(scope: Construct, stack: any){ // Development Environment Stack (development)
+  // Grab Tailscale Secret Key from secretsmanager
+  const tailscale_api_key = secretsmanager.Secret.fromSecretNameV2(scope, stack.name + "TailScaleSecret",stack.tailscale_secret_name);
+  // Create VPC
+  // Create Mattermost EC2 Instance
+  // Create Development EC2 Instance
+}
 
 function stackNode(scope: Construct, stack: any){ // Nodejs application stack (node)
   // Create Role for Codedeploy
