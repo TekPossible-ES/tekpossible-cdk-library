@@ -142,11 +142,9 @@ function devopsNode(scope: Construct, stack: any) { // nodejs application pipeli
 
 // will implement at a later date
 function stackDevEnv(scope: Construct, stack: any){ // Development Environment Stack (development)
-  // Grab Tailscale Secret Key from secretsmanager
+  // Import Tailscale Secret Key from SecretsManager
   const tailscale_api_key = secretsmanager.Secret.fromSecretNameV2(scope, stack.name + "TailScaleSecret",stack.tailscale_secret_name);
-  // Create VPC
-  // Create Mattermost EC2 Instance
-  // Create Development EC2 Instance
+  // Create Development VPC
   const dev_vpc = new ec2.Vpc(scope, stack.name + "-VPC", {
     ipAddresses: ec2.IpAddresses.cidr("10.0.0.0/16"),
     createInternetGateway: true,
@@ -172,7 +170,28 @@ function stackDevEnv(scope: Construct, stack: any){ // Development Environment S
     trafficType: ec2.FlowLogTrafficType.ALL,
     maxAggregationInterval: ec2.FlowLogMaxAggregationInterval.TEN_MINUTES
   });
-  
+  // Create Mattermost Security Group
+  const dev_mattermost_sg = new ec2.SecurityGroup(scope, stack.name + "-MatterMostSG", {
+    vpc: dev_vpc,
+    allowAllOutbound: true,
+    securityGroupName: stack.name + "-MatterMostSG"
+  });
+
+  dev_mattermost_sg.addIngressRule(ec2.Peer.ipv4("10.0.0.0/16"), ec2.Port.tcp(22));
+  dev_mattermost_sg.addIngressRule(ec2.Peer.ipv4("10.0.0.0/16"), ec2.Port.tcp(8065));
+
+  // Create Mattermost EC2 Instance
+  const dev_mattermost_ec2 = new ec2.Instance(scope, stack.name + "-MatterMostServer", {
+    vpc: dev_vpc, 
+    instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.SMALL),
+    machineImage: ec2.MachineImage.latestAmazonLinux2023(),
+    vpcSubnets: dev_vpc.selectSubnets({
+      subnetType:  ec2.SubnetType.PRIVATE_WITH_EGRESS
+    }),
+    securityGroup: dev_mattermost_sg,
+    keyPair: ec2.KeyPair.fromKeyPairName(scope, stack.name  + "keypair", "ansible-keypair")
+  });
+  // TODO: Determine how to either template the mattermost configuration file (a replace statement or some route 53 magic)
 
 }
 
