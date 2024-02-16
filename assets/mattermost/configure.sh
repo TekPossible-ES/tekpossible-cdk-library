@@ -9,7 +9,7 @@ sudo rm -rf /opt/mattermost
 sudo dnf update -y
 
 # Install and Postgres DB Server and Client
-sudo dnf install postgresql-15.4-1.fc39 postgresql-server-15.4-1.fc39 -y
+sudo dnf install postgresql15-15.5-1.amzn2023.0.1.x86_64 postgresql15-server-15.5-1.amzn2023.0.1.x86_64 -y
 
 # Install and Configure Mattermost ESR
 rm -rf ./mattermost*

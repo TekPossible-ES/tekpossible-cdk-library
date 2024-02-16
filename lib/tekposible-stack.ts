@@ -142,9 +142,6 @@ function devopsNode(scope: Construct, stack: any) { // nodejs application pipeli
 
 
 function stackDevEnv(scope: Construct, stack: any){ // Development Environment Stack (development)
-  // Import Tailscale Secret Key from SecretsManager
-  const tailscale_secret = secretsmanager.Secret.fromSecretCompleteArn(scope, stack.name + "TaiscaleSecret", stack.tailscale_secret_arn);
- const tailscale_api_key = tailscale_secret.secretValueFromJson("tailscale_key");
   // Create Development VPC
   const dev_vpc = new ec2.Vpc(scope, stack.name + "-VPC", {
     ipAddresses: ec2.IpAddresses.cidr("10.0.0.0/16"),
@@ -196,8 +193,16 @@ function stackDevEnv(scope: Construct, stack: any){ // Development Environment S
   var dev_mattermost_ec2_script = readFileSync("./assets/mattermost/configure.sh", "utf-8");
   dev_mattermost_ec2_script = dev_mattermost_ec2_script.replace("REPLACE", stack.mattermost_dns);
 
-  // Add install script to the userdata of the EC2 Instance
+  // Add install script to the userdata of the Mattermost EC2 Instance
   dev_mattermost_ec2.addUserData(dev_mattermost_ec2_script);
+  // Create Tailscale Role for Reading secrets
+  const tailscale_iam_role = new iam.Role(scope, stack.name + 'TailscaleRole', {
+    roleName: stack.name + 'TailscaleRole',
+    assumedBy: new iam.ServicePrincipal("ec2.amazonaws.com")
+  });
+
+  // Create Tailscale IAM Role for Reading Secrets
+  tailscale_iam_role.addManagedPolicy(iam.ManagedPolicy.fromManagedPolicyArn(scope, stack.name + "TSROLE", "arn:aws:iam::aws:policy/SecretsManagerReadWrite"));
   
   // Create Tailscale SG
   const dev_tailscale_sg = new ec2.SecurityGroup(scope, stack.name + "-TailscaleSG", {
@@ -217,15 +222,15 @@ function stackDevEnv(scope: Construct, stack: any){ // Development Environment S
       subnetType:  ec2.SubnetType.PRIVATE_WITH_EGRESS
     }),
     securityGroup: dev_tailscale_sg,
+    role: tailscale_iam_role,
     keyPair: ec2.KeyPair.fromKeyPairName(scope, stack.name  + "keypair-tailscale", stack.ssh_keypair),
   });
 
     // Change some values in the script
     var dev_tailscale_ec2_script = readFileSync("./assets/tailscale/configure.sh", "utf-8");
-    // Techincally the secret will exist in plaintext, but not be commited to any repos which is why I am doing it this way anyways
-    dev_tailscale_ec2_script = dev_tailscale_ec2_script.replace("REPLACE", tailscale_api_key.unsafeUnwrap());
+    dev_tailscale_ec2_script = dev_tailscale_ec2_script.replace("REPLACE", stack.tailscale_secret_arn);
   
-    // Add install script to the userdata of the EC2 Instance
+    // Add install script to the userdata of the Tailscale EC2 Instance
     dev_tailacale_ec2.addUserData(dev_tailscale_ec2_script);
 
 
