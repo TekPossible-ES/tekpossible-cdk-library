@@ -144,7 +144,7 @@ function devopsNode(scope: Construct, stack: any) { // nodejs application pipeli
 function stackDevEnv(scope: Construct, stack: any){ // Development Environment Stack (development)
   // Create Development VPC
   const dev_vpc = new ec2.Vpc(scope, stack.name + "-VPC", {
-    ipAddresses: ec2.IpAddresses.cidr("10.0.0.0/16"),
+    ipAddresses: ec2.IpAddresses.cidr("10.75.0.0/16"),
     createInternetGateway: true,
     enableDnsHostnames: true,
     enableDnsSupport: true,
@@ -175,8 +175,8 @@ function stackDevEnv(scope: Construct, stack: any){ // Development Environment S
     securityGroupName: stack.name + "-MatterMostSG"
   });
 
-  dev_mattermost_sg.addIngressRule(ec2.Peer.ipv4("10.0.0.0/16"), ec2.Port.tcp(22));
-  dev_mattermost_sg.addIngressRule(ec2.Peer.ipv4("10.0.0.0/16"), ec2.Port.tcp(8065));
+  dev_mattermost_sg.addIngressRule(ec2.Peer.ipv4("10.75.0.0/16"), ec2.Port.tcp(22));
+  dev_mattermost_sg.addIngressRule(ec2.Peer.ipv4("10.75.0.0/16"), ec2.Port.tcp(8065));
 
   // Create Mattermost EC2 Instance
   const dev_mattermost_ec2 = new ec2.Instance(scope, stack.name + "-MatterMostServer", {
@@ -211,7 +211,7 @@ function stackDevEnv(scope: Construct, stack: any){ // Development Environment S
     securityGroupName: stack.name + "-TailscaleSG"
   });
 
-  dev_tailscale_sg.addIngressRule(ec2.Peer.ipv4("10.0.0.0/16"), ec2.Port.tcp(22));
+  dev_tailscale_sg.addIngressRule(ec2.Peer.ipv4("10.75.0.0/16"), ec2.Port.tcp(22));
 
   // Create Tailscale EC2 Instance
   const dev_tailacale_ec2 = new ec2.Instance(scope, stack.name + "-TailscaleServer", {
