@@ -143,7 +143,7 @@ function devopsNode(scope: Construct, stack: any) { // nodejs application pipeli
 
 function stackDevEnv(scope: Construct, stack: any){ // Development Environment Stack (development)
   // Import Tailscale Secret Key from SecretsManager
-  const tailscale_secret = secretsmanager.Secret.fromSecretNameV2(scope, stack.name + "TailScaleSecret",stack.tailscale_secret_name);
+  const tailscale_secret = secretsmanager.Secret.fromSecretCompleteArn(scope, stack.name + "TaiscaleSecret", stack.tailscale_secret_arn);
  const tailscale_api_key = tailscale_secret.secretValueFromJson("tailscale_key");
   // Create Development VPC
   const dev_vpc = new ec2.Vpc(scope, stack.name + "-VPC", {
@@ -194,7 +194,7 @@ function stackDevEnv(scope: Construct, stack: any){ // Development Environment S
   });
   // Change some values in the script
   var dev_mattermost_ec2_script = readFileSync("./assets/mattermost/configure.sh", "utf-8");
-  dev_mattermost_ec2_script = dev_mattermost_ec2_script.replace("/REPLACE/g", stack.mattermost_dns);
+  dev_mattermost_ec2_script = dev_mattermost_ec2_script.replace("REPLACE", stack.mattermost_dns);
 
   // Add install script to the userdata of the EC2 Instance
   dev_mattermost_ec2.addUserData(dev_mattermost_ec2_script);
@@ -222,12 +222,11 @@ function stackDevEnv(scope: Construct, stack: any){ // Development Environment S
 
     // Change some values in the script
     var dev_tailscale_ec2_script = readFileSync("./assets/tailscale/configure.sh", "utf-8");
-    dev_tailscale_ec2_script = dev_tailscale_ec2_script.replace("/REPLACE/g", tailscale_api_key.toString());
+    // Techincally the secret will exist in plaintext, but not be commited to any repos which is why I am doing it this way anyways
+    dev_tailscale_ec2_script = dev_tailscale_ec2_script.replace("REPLACE", tailscale_api_key.unsafeUnwrap());
   
     // Add install script to the userdata of the EC2 Instance
     dev_tailacale_ec2.addUserData(dev_tailscale_ec2_script);
-    console.log(tailscale_api_key.toString());
-    console.log(tailscale_secret.secretValue.toJSON());
 
 
 }

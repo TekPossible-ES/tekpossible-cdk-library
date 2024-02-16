@@ -56,5 +56,5 @@ new TekPossibleEnterpriseStack(app, 'TekPossible-Development', {
   name: "TekPossible-Development",
   ssh_keypair: "ansible-keypair", 
   mattermost_dns: "mattermost.tekp.development",
-  tailscale_secret_name: "tekpossible-esdevelopment-tailscale"
+  tailscale_secret_arn: "arn:aws:secretsmanager:us-east-2:383009235696:secret:tekpossible-esdevelopment-tailscale-dj2A5b"
 });
