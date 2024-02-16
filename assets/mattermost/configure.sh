@@ -1,6 +1,9 @@
 #!/bin/bash
 # Mattermost install script for EC2 Instance
 
+# Set Hostname for Mattermost EC2 Instance
+sudo hostnamectl set-hostname REPLACE
+
 # Remove old versions if applicable and update the system
 sudo rm -rf /opt/mattermost
 sudo dnf update -y
@@ -67,7 +70,7 @@ sudo sed -i "s/ident/trust/g" /var/lib/pgsql/data/pg_hba.conf
 sudo systemctl restart postgresql
 sudo rm -rf /tmp/init.sql
 sudo sed -i "s/\"DataSource\".*/\"DataSource\":\"postgres:\/\/mmuser:$PASSWORD@localhost\/mattermost?sslmode=disable\\\u0026connect_timeout=10\\\u0026binary_parameters=yes\",/g" /opt/mattermost/config/config.json
-export SITENAME=$(hostname -I | cut -d ' ' -f1)
+export SITENAME=$(hostname -f)
 sudo sed -i "s/\"SiteURL\".*/\"SiteURL\":\"http:\/\/$SITENAME:8065\",/g" /opt/mattermost/config/config.json
 
 # Start Mattermost Service

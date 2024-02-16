@@ -38,7 +38,8 @@ new TekPossibleEnterpriseStack(app, 'TekPossible-Resume-DevOps', {
 new TekPossibleEnterpriseStack(app, 'TekPossible-Resume', {
   environmentType: "node",
   name: "TekPossible-Resume",
-  codedeploy_app: "TekPossible-Resume-DevOps-CodeDeployApp"
+  codedeploy_app: "TekPossible-Resume-DevOps-CodeDeployApp",
+  ssh_keypair: "ansible-keypair"
 });
 
 // Create CI/CD Pipeline for this code repository
@@ -47,4 +48,13 @@ new TekPossibleEnterpriseStack(app, 'TekPossible-IaC-DevOps', {
   name: "TekPossible-IaC-DevOps",
   sns_email: "iac-notifications@tekpossible.com",
   repo_name: "tekpossible-iac-library"
+});
+
+// Create Development Environment for TekPossible Engineering Teams
+new TekPossibleEnterpriseStack(app, 'TekPossible-Development', {
+  environmentType: "development",
+  name: "TekPossible-Development",
+  ssh_keypair: "ansible-keypair", 
+  mattermost_dns: "mattermost.tekp.development",
+  tailscale_secret_name: "tekpossible-esdevelopment-tailscale"
 });
