@@ -10,7 +10,6 @@ import * as codebuild from 'aws-cdk-lib/aws-codebuild';
 import * as codedeploy from 'aws-cdk-lib/aws-codedeploy';
 import * as codepipeline from 'aws-cdk-lib/aws-codepipeline';
 import * as codepipeline_actions from 'aws-cdk-lib/aws-codepipeline-actions';
-import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { SamlConsolePrincipal } from 'aws-cdk-lib/aws-iam';
 import { readFileSync } from 'fs';
 
@@ -178,6 +177,15 @@ function stackDevEnv(scope: Construct, stack: any){ // Development Environment S
   dev_mattermost_sg.addIngressRule(ec2.Peer.ipv4("10.75.0.0/16"), ec2.Port.tcp(22));
   dev_mattermost_sg.addIngressRule(ec2.Peer.ipv4("10.75.0.0/16"), ec2.Port.tcp(8065));
 
+  const mattermost_iam_role = new iam.Role(scope, stack.name + 'MattermostRole', {
+    roleName: stack.name + 'MattermostRole',
+    assumedBy: new iam.ServicePrincipal("ec2.amazonaws.com")
+  });
+
+  // Create Mattermost IAM Role for Reading Secrets
+  mattermost_iam_role.addManagedPolicy(iam.ManagedPolicy.fromManagedPolicyArn(scope, stack.name + "MMROLE_SSM", "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"));
+  mattermost_iam_role.addManagedPolicy(iam.ManagedPolicy.fromManagedPolicyArn(scope, stack.name + "MMROLE_LOGS", "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"));
+  
   // Create Mattermost EC2 Instance
   const dev_mattermost_ec2 = new ec2.Instance(scope, stack.name + "-MatterMostServer", {
     vpc: dev_vpc, 
@@ -186,6 +194,7 @@ function stackDevEnv(scope: Construct, stack: any){ // Development Environment S
     vpcSubnets: dev_vpc.selectSubnets({
       subnetType:  ec2.SubnetType.PRIVATE_WITH_EGRESS
     }),
+    role: mattermost_iam_role,
     securityGroup: dev_mattermost_sg,
     keyPair: ec2.KeyPair.fromKeyPairName(scope, stack.name  + "keypair-mattermost", stack.ssh_keypair),
   });
@@ -203,7 +212,8 @@ function stackDevEnv(scope: Construct, stack: any){ // Development Environment S
 
   // Create Tailscale IAM Role for Reading Secrets
   tailscale_iam_role.addManagedPolicy(iam.ManagedPolicy.fromManagedPolicyArn(scope, stack.name + "TSROLE", "arn:aws:iam::aws:policy/SecretsManagerReadWrite"));
-  
+  tailscale_iam_role.addManagedPolicy(iam.ManagedPolicy.fromManagedPolicyArn(scope, stack.name + "TSROLE_SSM", "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"));
+  tailscale_iam_role.addManagedPolicy(iam.ManagedPolicy.fromManagedPolicyArn(scope, stack.name + "TSROLE_LOGS", "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"));
   // Create Tailscale SG
   const dev_tailscale_sg = new ec2.SecurityGroup(scope, stack.name + "-TailscaleSG", {
     vpc: dev_vpc,
@@ -244,6 +254,9 @@ function stackNode(scope: Construct, stack: any){ // Nodejs application stack (n
   });
   // Create VPC/Subnet
   codedeploy_iam_role.addManagedPolicy(iam.ManagedPolicy.fromManagedPolicyArn(scope, stack.name + "CDROLE", "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforAWSCodeDeploy"));
+  codedeploy_iam_role.addManagedPolicy(iam.ManagedPolicy.fromManagedPolicyArn(scope, stack.name + "CDROLE_SSM", "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"));
+  codedeploy_iam_role.addManagedPolicy(iam.ManagedPolicy.fromManagedPolicyArn(scope, stack.name + "CDROLE_LOGS", "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"));
+  
   const node_vpc = new ec2.Vpc(scope, stack.name + "-VPC",{
     ipAddresses: ec2.IpAddresses.cidr("10.0.0.0/16"),
     createInternetGateway: true,
